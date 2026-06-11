@@ -4,6 +4,7 @@
 #include <vector>
 #include <string>
 #include <cmath>
+#include<random>
 
 using namespace std;
 
@@ -31,6 +32,18 @@ float conv1d(float input[ROWS][COLS], int kernel_size, int layer) {
 }
 
 
+void randomgen(int row, int column, float** output, float min_val = -1.0f, float max_val = 1.0f) {
+    
+    mt19937 gen(random_device{}());
+    uniform_real_distribution<float> dis(min_val, max_val);
+
+    
+    for (int i = 0; i < row; ++i) {
+        for (int j = 0; j < column; ++j) {
+            output[i][j] = dis(gen);
+        }
+    }
+}
 
 
 
