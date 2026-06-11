@@ -45,7 +45,40 @@ void randomgen(int row, int column, float** output, float min_val = -1.0f, float
     }
 }
 
+void randomgen_1d(int size, float* output, float min_val = -0.1f, float max_val = 0.1f) {
+    mt19937 gen(std::random_device{}());
+   uniform_real_distribution<float> dis(min_val, max_val);
 
+    for (int i = 0; i < size; ++i) {
+        output[i] = dis(gen);
+    }
+}
+
+vector<vector<vector<float>>> max_pooling1d(const vector<vector<vector<float>>>& input, int pool_size = 2, int stride = 2) {
+    int num_samples = input.size();
+    int input_length = input[0].size();
+    int channels = input[0][0].size();
+    int output_length = (input_length - pool_size) / stride + 1;
+
+    vector<vector<vector<float>>> output(num_samples, vector<vector<float>>(output_length, vector<float>(channels, 0.0f)));
+
+    for (int i = 0; i < num_samples; ++i) {
+        for (int c = 0; c < channels; ++c) {
+            for (int j = 0; j < output_length; ++j) {
+                int start_idx = j * stride;
+                float max_val = input[i][start_idx][c];
+                
+                for (int p = 1; p < pool_size; ++p) {
+                    if (input[i][start_idx + p][c] > max_val) {
+                        max_val = input[i][start_idx + p][c];
+                    }
+                }
+                output[i][j][c] = max_val;
+            }
+        }
+    }
+    return output;
+}
 
 struct Dataset {
     vector<vector<float>> X_array; 
@@ -94,6 +127,7 @@ int main() {
     // 1. Declare fixed-size static destination arrays safely outside the thread stack
     static float static_X[ROWS][COLS];
     static int static_y[ROWS];
+    float bias[32];
 
     // 2. Fetch raw data from CSV pipeline
     Dataset dataset = getRawDataset(filePath);
@@ -125,14 +159,44 @@ int main() {
         cout << "..." << endl;
     }
 
+    float** kernel = new float*[32];
+    for (int i = 0; i < 32; ++i) {
+        kernel[i] = new float[5];
+    }
+
+    randomgen(32, 5, kernel, -0.5f, 0.5f);
+    randomgen_1d(32, bias, -0.1f, 0.1f);
+
 
     //Training loop , avoid for inference, just comment it out.
+    vector<vector<vector<float>>> feature(87554, vector<vector<float>>(183, vector<float>(32, 0.0f)));
+    vector<vector<vector<float>>> pooled_feature(87554, vector<vector<float>>(91, vector<float>(32, 0.0f)));
 
     for (int epoch = 0; epoch < 1000; epoch++)
-    {
-        
+        {
+            for (size_t i = 0; i < 87554; i++) 
+                {
+                  for (size_t j = 0; j < 183; j++) 
+                     {
+                       for (size_t k = 0; k < 32; k++) 
+                          {
+                            float temp = 0.0f;
+                
+                              for (size_t l = 0; l < 5; l++) 
+                                 {
+                                    temp += static_X[i][j + l] * kernel[k][l];
+                                 }
+                
+               
+                          feature[i][j][k] = temp + bias[k]; 
+            }
+        }
     }
-    
+
+   pooled_feature = max_pooling1d(feature,2,2);
+
+
+}
 
 
     
